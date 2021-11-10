@@ -12,7 +12,6 @@ class AIRouting(BASE_routing):
         self.rnd_for_routing_ai = np.random.RandomState(self.simulator.seed)
         self.taken_actions = {}  #id event : (cell,action,hash)
         self.actions_rewards={}
-        self.actions_timestamp={}
         self.epsilon=10
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
@@ -23,14 +22,17 @@ class AIRouting(BASE_routing):
         # Be aware, due to network errors we can give the same event to multiple drones and receive multiple feedback for the same packet!!
         # NOTE: reward or update using the old action!!
         # STORE WHICH ACTION DID YOU TAKE IN THE PAST.
+        
         if id_event in self.taken_actions.keys():
-            action=self.taken_actions[id_event]
+            print("--------------------------------------------------",self.taken_actions)
+            action=self.actions_rewards[id_event]
             if outcome==-1:
                 self.actions_rewards[action]=-2
-                print("Expired pkd",action,self.actions_rewards[action])
+                print(action,self.actions_rewards[action])
             else:
                 self.actions_rewards[action]=delay
-                print("Not expired pkd",action,self.actions_rewards[action])
+                print(action,self.actions_rewards[action])
+
     def relay_selection(self, opt_neighbors, pkd):
         """ arg min score  -> geographical approach, take the drone closest to the depot """
         # Only if you need --> several features:
@@ -44,6 +46,8 @@ class AIRouting(BASE_routing):
             if point==(750,0):
                 break
             localHistory.insert(0,point)
+      #  print(hash(str(localHistory)))
+        print("------------------------------------------PKD IDENTIFIER",pkd.event_ref.identifier)
         if self.drone.identifier not in set(["x"]):
             #Initialization of the reward dictionary if the element (cell,None,hash_history) is not stored yet
             if (cell_index,None,hash(str(localHistory))) not in self.actions_rewards:
@@ -59,6 +63,7 @@ class AIRouting(BASE_routing):
             # Check if random choice (see epsilon greedy algorithm)
             isRandomChoice=random.choices([True,False],weights=(self.epsilon,90),k=1)[0]
             if isRandomChoice:
+                print("Random choice")
                 opt_neighbors=[v[1] for v in opt_neighbors]
                 drone= self.simulator.rnd_routing.choice(opt_neighbors)
                 self.taken_actions[pkd.event_ref.identifier]=(cell_index,drone,hash(str(localHistory)))
@@ -73,4 +78,7 @@ class AIRouting(BASE_routing):
                 metrics about the learning process
         """
         pass
-
+    def checkDepot(self):
+        if self.drone.coords==(750,0):
+            print("END")
+        self.checkDepot(self)
