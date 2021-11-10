@@ -23,8 +23,6 @@ class AIRouting(BASE_routing):
         # Be aware, due to network errors we can give the same event to multiple drones and receive multiple feedback for the same packet!!
         # NOTE: reward or update using the old action!!
         # STORE WHICH ACTION DID YOU TAKE IN THE PAST.
-        if id_event in self.randomId:
-            print("TROVATOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",id_event)
         if id_event in self.taken_actions.keys():
             
             action=self.actions_rewards[id_event]
