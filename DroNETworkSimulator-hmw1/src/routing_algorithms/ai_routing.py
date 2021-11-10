@@ -13,7 +13,7 @@ class AIRouting(BASE_routing):
         self.taken_actions = {}  #id event : (cell,action,hash)
         self.actions_rewards={}
         self.epsilon=10
-        self.randomId=set([])
+        self.actions_timestamp={}
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
         # Packets that we delivered and still need a feedback
@@ -24,8 +24,7 @@ class AIRouting(BASE_routing):
         # NOTE: reward or update using the old action!!
         # STORE WHICH ACTION DID YOU TAKE IN THE PAST.
         if id_event in self.taken_actions.keys():
-            
-            action=self.actions_rewards[id_event]
+            action=self.taken_actions[id_event]
             if outcome==-1:
                 self.actions_rewards[action]=-2
                 print(action,self.actions_rewards[action])
@@ -46,8 +45,6 @@ class AIRouting(BASE_routing):
             if point==(750,0):
                 break
             localHistory.insert(0,point)
-      #  print(hash(str(localHistory)))
-        ##print("------------------------------------------PKD IDENTIFIER",pkd.event_ref.identifier)
         if self.drone.identifier not in set(["x"]):
             #Initialization of the reward dictionary if the element (cell,None,hash_history) is not stored yet
             if (cell_index,None,hash(str(localHistory))) not in self.actions_rewards:
@@ -61,10 +58,9 @@ class AIRouting(BASE_routing):
             #  .....
             # Store your current action --- you can add several stuff if needed to take a reward later
             # Check if random choice (see epsilon greedy algorithm)
-            self.randomId.add(pkd.event_ref.identifier)
+    
             isRandomChoice=random.choices([True,False],weights=(self.epsilon,90),k=1)[0]
             if isRandomChoice:
-                #print("Random choice")
                 opt_neighbors=[v[1] for v in opt_neighbors]
                 drone= self.simulator.rnd_routing.choice(opt_neighbors)
                 self.taken_actions[pkd.event_ref.identifier]=(cell_index,drone,hash(str(localHistory)))
