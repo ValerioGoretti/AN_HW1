@@ -6,6 +6,13 @@ __pycache__/
 # C extensions
 *.so
 
+# User-specific stuff
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+
 # Distribution / packaging
 .Python
 build/
@@ -127,3 +134,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+.idea/AN_HW1.iml
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
