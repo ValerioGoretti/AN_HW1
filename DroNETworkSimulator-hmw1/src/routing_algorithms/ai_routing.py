@@ -88,9 +88,14 @@ class AIRouting(BASE_routing):
                 if pkd.event_ref.identifier not in self.taken_actions.keys():
                     self.taken_actions[pkd.event_ref.identifier]=set([])
                 for collision in opt_neighbors:
-                    self.taken_actions[pkd.event_ref.identifier].add((cell_index,drone,hash(str(localHistory)),collision))
-                    self.actions_timestamp[(cell_index,drone,hash(str(localHistory)),collision)]=actual_time
-                    self.actions_set.add((cell_index,drone,hash(str(localHistory)),collision))
+                    if collision!=drone:
+                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
+                        self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
+                        self.actions_set.add((cell_index,None,hash(str(localHistory)),collision))
+                    else:
+                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,drone,hash(str(localHistory)),collision))
+                        self.actions_timestamp[(cell_index,drone,hash(str(localHistory)),collision)]=actual_time
+                        self.actions_set.add((cell_index,drone,hash(str(localHistory)),collision))
                 return drone
 #----------------------GREEDY ACTION SELECTION, NOT IMPLEMENTED YET(STILL RANDOM)----------------------------------------
             self.perform_greedy_action(opt_neighbors,cell_index,localHistory)
@@ -109,8 +114,9 @@ class AIRouting(BASE_routing):
             This method is called at the end of the simulation, can be usefull to print some
                 metrics about the learning process
         """
-        print(self.actions_rewards)
         pass
+     
+      
     def untaken_drone(self,opt_neighbors,pkd):
         while True:
             drone=self.simulator.rnd_routing.choice(opt_neighbors+[None])
