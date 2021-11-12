@@ -58,7 +58,7 @@ SIM_DURATION = 30000 # int: steps of simulation. # ***
 TS_DURATION = 0.150   # float: seconds duration of a step in seconds.
 SEED = 5          # int: seed of this simulation.
 
-N_DRONES = 2  # int: number of drones. # ***
+N_DRONES = 3  # int: number of drones. # ***
 ENV_WIDTH = 1500      # float: meters, width of environment.
 ENV_HEIGHT = 1500     # float: meters, height of environment.
 
@@ -77,7 +77,7 @@ DRONE_MAX_BUFFER_SIZE = 100     # int: max number of packets in the buffer of a 
 DRONE_MAX_ENERGY = 12000           # int: max energy of a drone, possible travelled distance (meters)
 DRONE_MIN_FLIGHT_TIME = 3200  #  possible travelled distance (meters)
 HETEROGENOUS_DRONE_SPEED = True
-FERRY = 0
+FERRY = 1
 
 # depot
 DEPOT_COMMUNICATION_RANGE = 5  # float: meters, communication range of the depot.
