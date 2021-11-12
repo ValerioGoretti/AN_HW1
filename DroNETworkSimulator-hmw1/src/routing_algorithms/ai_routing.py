@@ -39,10 +39,10 @@ class AIRouting(BASE_routing):
         actual_time=time.time()
         if id_event in self.taken_actions.keys():
             action_list=self.taken_actions[id_event]
-            if outcome==1:
-                print("DELIVERED PACKET: "+str(id_event)+"__")
-            else:
-                print("EXPIRED PACKET: "+str(id_event)+"__")
+          #  if outcome==1:
+           #     print("DELIVERED PACKET: "+str(id_event)+"__")
+           # else:
+           #     print("EXPIRED PACKET: "+str(id_event)+"__")
             for action in action_list:
                 action_delay=actual_time-self.actions_timestamp[action]
                 if outcome==-1:
@@ -56,7 +56,6 @@ class AIRouting(BASE_routing):
             #        print("Action: ",action,", Setted reward",self.actions_rewards[action],", Delay action: ",actual_time-self.actions_timestamp[action],", Delay from generation: ",delay)
                 else:
                     #Update function to be implemented
-                    
                     self.actions_rewards[action].append((-1)*(action_delay))
                     #incremental-------------
                     n=len(self.actions_rewards[action])
@@ -89,20 +88,19 @@ class AIRouting(BASE_routing):
                     self.actions_set.add((cell_index,d,hash(str(localHistory)),d))
                     self.actions_rewards[(cell_index,None,hash(str(localHistory)),d)]=[]
                     self.actions_set.add((cell_index,None,hash(str(localHistory)),d))
-                    self.qN_dictionary[(cell_index,None,hash(str(localHistory)),d)]=0
-                    self.qN_dictionary[(cell_index,d,hash(str(localHistory)),d)]=0
+                    self.qN_dictionary[(cell_index,None,hash(str(localHistory)),d)]=-3
+                    self.qN_dictionary[(cell_index,d,hash(str(localHistory)),d)]=-3
             # self.drone.residual_energy (that tells us when I'll come back to the depot).
             # Store your current action --- you can add several stuff if needed to take a reward later
             # Check if random choice (see epsilon greedy algorithm). 
             # Since there is no greedy selection implementation, the probability is 100% on random choice
-            
             isRandomChoice=random.choices([True,False],weights=(10,90),k=1)[0]
             opt_neighbors=[v[1] for v in opt_neighbors]
             actual_time=time.time()
             if pkd.event_ref.identifier not in self.taken_actions.keys():
                 self.taken_actions[pkd.event_ref.identifier]=set([])  
             if isRandomChoice:
-                print("Performing random action")
+               # print("Performing random action")
                 drone=self.untaken_drone(opt_neighbors,pkd)
                 for collision in opt_neighbors:
                     if collision!=drone:
@@ -113,14 +111,16 @@ class AIRouting(BASE_routing):
                         self.taken_actions[pkd.event_ref.identifier].add((cell_index,drone,hash(str(localHistory)),collision))
                         self.actions_timestamp[(cell_index,drone,hash(str(localHistory)),collision)]=actual_time
                         self.actions_set.add((cell_index,drone,hash(str(localHistory)),collision))
-                print("Chosen action: ",drone)
+              #  print("Chosen action: ",drone)
                 return drone
 #----------------------GREEDY ACTION SELECTION----------------------------------------
             else:
-                print("Performing greedy action")
+              #  print("Performing greedy action")
                 greedy_action,reward=self.perform_greedy_action_incremental(cell_index,localHistory,opt_neighbors,pkd)
-                print("     chosen",greedy_action,"with Q(a): ",reward)
-                for collision in opt_neighbors:
+                
+               # print("     chosen",greedy_action,"with Q(a): ",reward)
+                
+                for collision in opt_neighbors:        
                     if collision!=greedy_action:
                         self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
                         self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
@@ -130,15 +130,6 @@ class AIRouting(BASE_routing):
                         self.actions_timestamp[(cell_index,greedy_action,hash(str(localHistory)),collision)]=actual_time
                         self.actions_set.add((cell_index,greedy_action,hash(str(localHistory)),collision))
                 return greedy_action[1]
-            #drone=self.untaken_drone(opt_neighbors,pkd)
-            #if pkd.event_ref.identifier not in self.taken_actions.keys():
-            #    self.taken_actions[pkd.event_ref.identifier]=set([(cell_index,drone,hash(str(localHistory)))])
-            #else:
-            #    self.taken_actions[pkd.event_ref.identifier].add((cell_index,drone,hash(str(localHistory))))
-            #self.actions_set.add((cell_index,drone,hash(str(localHistory))))
-            #self.actions_timestamp[(cell_index,drone,hash(str(localHistory)))]=time.time()
-            #return drone
-        #self.taken_actions[pkd.event_ref.identifier]=(cell_index,None,hash(str(localHistory)))
         return None
     def print(self):
         """
@@ -170,6 +161,8 @@ class AIRouting(BASE_routing):
             result.update(self.q_reward_dictionary(cell_index,localHistory,collision))
         return [(action,reward) for action,reward in result.items() if reward==max(result.values()) and action[1] not in pkd.hops][0]
     def q_reward_incremental_dictionary(self,cell_index,localHistory,collision):
+       # if collision.identifier in set([0,1,2]):
+        #    return {(cell_index,collision,hash(str(localHistory)),collision):1,(cell_index,None,hash(str(localHistory)),collision):-4}
         past_actions=[x for x in self.actions_set if x[0]==cell_index and x[2]==hash(str(localHistory))and x[3]==collision]
         counter_cell_localhistory=0
         result={}
