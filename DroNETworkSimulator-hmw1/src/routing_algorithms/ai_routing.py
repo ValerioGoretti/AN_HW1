@@ -81,12 +81,13 @@ class AIRouting(BASE_routing):
             # Check if random choice (see epsilon greedy algorithm). 
             # Since there is no greedy selection implementation, the probability is 100% on random choice
             
-            isRandomChoice=random.choices([True,False],weights=(0,100),k=1)[0]
+            isRandomChoice=random.choices([True,False],weights=(10,90),k=1)[0]
             opt_neighbors=[v[1] for v in opt_neighbors]
             actual_time=time.time()
             if pkd.event_ref.identifier not in self.taken_actions.keys():
                 self.taken_actions[pkd.event_ref.identifier]=set([])  
             if isRandomChoice:
+                print("Performing random action")
                 drone=self.untaken_drone(opt_neighbors,pkd)
                 for collision in opt_neighbors:
                     if collision!=drone:
@@ -97,6 +98,7 @@ class AIRouting(BASE_routing):
                         self.taken_actions[pkd.event_ref.identifier].add((cell_index,drone,hash(str(localHistory)),collision))
                         self.actions_timestamp[(cell_index,drone,hash(str(localHistory)),collision)]=actual_time
                         self.actions_set.add((cell_index,drone,hash(str(localHistory)),collision))
+                print("Chosen action: ",drone)
                 return drone
 #----------------------GREEDY ACTION SELECTION, NOT IMPLEMENTED YET(STILL RANDOM)----------------------------------------
             else:
@@ -129,8 +131,6 @@ class AIRouting(BASE_routing):
                 metrics about the learning process
         """
         pass
-     
-      
     def untaken_drone(self,opt_neighbors,pkd):
         while True:
             drone=self.simulator.rnd_routing.choice(opt_neighbors+[None])
@@ -145,22 +145,15 @@ class AIRouting(BASE_routing):
         for action in past_actions:
             if len(self.actions_rewards[action])!=0:
                 counter_cell_localhistory+=1
-                result[action]=statistics.mean(self.actions_reward[action])
-                #print("Action",action,"taken with reward: ",result[action])
+                result[action]=statistics.mean(self.actions_rewards[action])
             else:
                 result[action]=-3
-                #print("Action ",action,"never taken. Setted reward: -3")
         return result
-        #if counter_cell_localhistory==0:
-         #   print("Never taken action for",cell_index,hash(str(localHistory)),collision)
-       # else:
-        #    print("I have taken these actions before ",past_actions)
     def perform_greedy_action(self,cell_index,localHistory,opt_neighbors,pkd):
         result={}
         for collision in opt_neighbors:
-            result.update(self.q_reward_dictionary(cell_index,localHistory,opt_neighbors))
-        print(result)
-        return [(action,reward) for action,reward in result if reward==max(result.values()) and action[1] not in pkd.hops][0]
+            result.update(self.q_reward_dictionary(cell_index,localHistory,collision))
+        return [(action,reward) for action,reward in result.items() if reward==max(result.values()) and action[1] not in pkd.hops][0]
             
 
 
