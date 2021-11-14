@@ -1,5 +1,4 @@
 
-from math import exp
 import numpy as np
 import src.utilities.utilities as util
 
@@ -16,7 +15,6 @@ class GeoRouting(BASE_routing):
 
         for hpk, drone_istance in opt_neighbors:
             exp_position = hpk.cur_pos  # without estimation, a simple geographic approach
-           # exp_position= self.__estimated_neighbor_drone_position(hpk)
             exp_distance = util.euclidean_distance(exp_position, self.simulator.depot.coords)
             if exp_distance < best_drone_distance_from_depot:
                 best_drone_distance_from_depot = exp_distance
@@ -27,6 +25,7 @@ class GeoRouting(BASE_routing):
 
     def __estimated_neighbor_drone_position(self, hello_message):
         """ estimate the current position of the drone """
+
         # get known info about the neighbor drone
         hello_message_time = hello_message.time_step_creation
         known_position = hello_message.cur_pos

@@ -41,7 +41,7 @@ class AIRouting(BASE_routing):
             action_list=self.taken_actions[id_event]
           #  if outcome==1:
            #     print("DELIVERED PACKET: "+str(id_event)+"__")
-           # else:
+           # else:STE
            #     print("EXPIRED PACKET: "+str(id_event)+"__")
             for action in action_list:
                 action_delay=actual_time-self.actions_timestamp[action]
