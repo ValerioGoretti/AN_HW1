@@ -57,7 +57,8 @@ class AIRouting(BASE_routing):
                     n=len(self.actions_rewards[action])
                     qN=self.qN_dictionary[action]
                     self.qN_dictionary[action]=qN+(1/n)*(action_delay-qN)
-                    
+                   
+
     def relay_selection(self, opt_neighbors, pkd):
         """ arg min score  -> geographical approach, take the drone closest to the depot """
         # Only if you need --> several features:
