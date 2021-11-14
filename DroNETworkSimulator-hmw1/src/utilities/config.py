@@ -54,9 +54,9 @@ SAVE_PLOT_DIR = "data/plots/"
 
 # add constants here...
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 18000 # int: steps of simulation. # ***
+SIM_DURATION = 48000 # int: steps of simulation. # ***
 TS_DURATION = 0.150   # float: seconds duration of a step in seconds.
-SEED = 2         # int: seed of this simulation.
+SEED = 2        # int: seed of this simulation.
 
 N_DRONES = 5  # int: number of drones. # ***
 ENV_WIDTH = 1500      # float: meters, width of environment.
@@ -78,7 +78,6 @@ DRONE_MAX_ENERGY = 12000           # int: max energy of a drone, possible travel
 DRONE_MIN_FLIGHT_TIME = 3200  #  possible travelled distance (meters)
 HETEROGENOUS_DRONE_SPEED = True
 FERRY = 3
-
 # depot
 DEPOT_COMMUNICATION_RANGE = 5  # float: meters, communication range of the depot.
 DEPOT_COO = (750, 0)             # (float, float): coordinates of the depot.
@@ -90,7 +89,6 @@ class RoutingAlgorithm(Enum):
     RND = RandomRouting
     CLO = CloRouting
     AI = AIRouting
-
     @staticmethod
     def keylist():
         return list(map(lambda c: c.name, RoutingAlgorithm))
@@ -100,7 +98,6 @@ class ChannelError(Enum):
     GAUSSIAN = 2
     NO_ERROR = 3
     ON_DEVICE = 4
-    
     @staticmethod
     def keylist():
         return list(map(lambda c: c.name, ChannelError))
@@ -119,9 +116,7 @@ HELLO_DELAY = 5            # int : how many time steps wait before transmit agai
 RECEPTION_GRANTED = 0.95   # float : the min amount of success to evalute a neigh as relay
 LIL_DELTA = 1              # INT:  > 0
 OLD_HELLO_PACKET = 50
-
 ROOT_EVALUATION_DATA = "data/evaluation_tests/"
-
 NN_MODEL_PATH = "data/nnmodels/"
 
 # --------------- new cell probabilities -------------- #
