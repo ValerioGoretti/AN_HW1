@@ -46,23 +46,18 @@ class AIRouting(BASE_routing):
             for action in action_list:
                 action_delay=actual_time-self.actions_timestamp[action]
                 if outcome==-1:
-                    #Update function to be implemented
                     self.actions_rewards[action].append(-4)
                     #incremental-----------
                     n=len(self.actions_rewards[action])
                     qN=self.qN_dictionary[action]
                     self.qN_dictionary[action]=qN+(1/n)*((-4)-qN) 
-                    #----------------------    
-            #        print("Action: ",action,", Setted reward",self.actions_rewards[action],", Delay action: ",actual_time-self.actions_timestamp[action],", Delay from generation: ",delay)
                 else:
-                    #Update function to be implemented
                     self.actions_rewards[action].append((-1)*(action_delay))
                     #incremental-------------
                     n=len(self.actions_rewards[action])
                     qN=self.qN_dictionary[action]
                     self.qN_dictionary[action]=qN+(1/n)*(action_delay-qN)
-                    #------------------------
-             #       print("Action: ",action,", Setted reward",self.actions_rewards[action],", Delay action: ",actual_time-self.actions_timestamp[action],"Delay from generation: ",delay)
+                   
 
     def relay_selection(self, opt_neighbors, pkd):
         """ arg min score  -> geographical approach, take the drone closest to the depot """
@@ -94,15 +89,29 @@ class AIRouting(BASE_routing):
             # Store your current action --- you can add several stuff if needed to take a reward later
             # Check if random choice (see epsilon greedy algorithm). 
             # Since there is no greedy selection implementation, the probability is 100% on random choice
-            isRandomChoice=random.choices([True,False],weights=(10,90),k=1)[0]
-            opt_neighbors=[v[1] for v in opt_neighbors]
+            isRandomChoice=random.choices([True,False],weights=(20,80),k=1)[0]
+            opt_neighbors2=[v[1] for v in opt_neighbors]
             actual_time=time.time()
             if pkd.event_ref.identifier not in self.taken_actions.keys():
-                self.taken_actions[pkd.event_ref.identifier]=set([])  
+                self.taken_actions[pkd.event_ref.identifier]=set([])
+           # for hpk,collision in opt_neighbors:
+            #    if self.is_coming_back(hpk):
+             #       for _,collision2 in opt_neighbors:
+              #          if collision2==collision:
+               #             self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision2))
+                   ##         self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision2)]=actual_time
+                    #        self.actions_set.add((cell_index,None,hash(str(localHistory)),collision2))
+                     #   else:
+                           # self.taken_actions[pkd.event_ref.identifier].add((cell_index,collision,hash(str(localHistory)),collision))
+                          #  self.actions_timestamp[(cell_index,collision,hash(str(localHistory)),collision)]=actual_time
+                            #self.actions_set.add((cell_index,collision,hash(str(localHistory)),collision))
+                 #   return collision
             if isRandomChoice:
-               # print("Performing random action")
-                drone=self.untaken_drone(opt_neighbors,pkd)
-                for collision in opt_neighbors:
+                #drone=self.untaken_drone(opt_neighbors,pkd)
+                geo_drone=self.best_context_selection(opt_neighbors,pkd)
+                random_choice=self.untaken_drone(opt_neighbors2,pkd)
+                drone=random.choices([geo_drone,random_choice],weights=(70,30),k=1)[0]
+                for collision in opt_neighbors2:
                     if collision!=drone:
                         self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
                         self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
@@ -116,19 +125,16 @@ class AIRouting(BASE_routing):
 #----------------------GREEDY ACTION SELECTION----------------------------------------
             else:
               #  print("Performing greedy action")
-                greedy_action,reward=self.perform_greedy_action_incremental(cell_index,localHistory,opt_neighbors,pkd)
-                
-               # print("     chosen",greedy_action,"with Q(a): ",reward)
-                
-                for collision in opt_neighbors:        
-                    if collision!=greedy_action:
+                greedy_action,reward=self.perform_greedy_action_incremental(cell_index,localHistory,opt_neighbors2,pkd,opt_neighbors)
+                for collision in opt_neighbors2:        
+                    if collision!=greedy_action[1]:
                         self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
                         self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
                         self.actions_set.add((cell_index,None,hash(str(localHistory)),collision))
                     else:
-                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,greedy_action,hash(str(localHistory)),collision))
-                        self.actions_timestamp[(cell_index,greedy_action,hash(str(localHistory)),collision)]=actual_time
-                        self.actions_set.add((cell_index,greedy_action,hash(str(localHistory)),collision))
+                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,greedy_action[1],hash(str(localHistory)),collision))
+                        self.actions_timestamp[(cell_index,greedy_action[1],hash(str(localHistory)),collision)]=actual_time
+                        self.actions_set.add((cell_index,greedy_action[1],hash(str(localHistory)),collision))
                 return greedy_action[1]
         return None
     def print(self):
@@ -143,7 +149,7 @@ class AIRouting(BASE_routing):
             if drone==None:
                 return drone
             if drone.identifier not in pkd.hops:
-                return drone
+                return drone   
     def q_reward_dictionary(self,cell_index,localHistory,collision):
         past_actions=[x for x in self.actions_set if x[0]==cell_index and x[2]==hash(str(localHistory))and x[3]==collision]
         counter_cell_localhistory=0
@@ -155,11 +161,13 @@ class AIRouting(BASE_routing):
             else:
                 result[action]=-3
         return result
+    
     def perform_greedy_action(self,cell_index,localHistory,opt_neighbors,pkd):
         result={}
         for collision in opt_neighbors:
             result.update(self.q_reward_dictionary(cell_index,localHistory,collision))
-        return [(action,reward) for action,reward in result.items() if reward==max(result.values()) and action[1] not in pkd.hops][0]
+        
+        return [(action,reward) for action,reward in result.items() if reward==max(result.values()) and action[1].identifier not in pkd.hops][0]
     def q_reward_incremental_dictionary(self,cell_index,localHistory,collision):
        # if collision.identifier in set([0,1,2]):
         #    return {(cell_index,collision,hash(str(localHistory)),collision):1,(cell_index,None,hash(str(localHistory)),collision):-4}
@@ -169,11 +177,38 @@ class AIRouting(BASE_routing):
         for action in past_actions:
             result[action]=self.qN_dictionary[action]
         return result
-    def perform_greedy_action_incremental(self,cell_index,localHistory,opt_neighbors,pkd):
+    def perform_greedy_action_incremental(self,cell_index,localHistory,opt_neighbors,pkd,opti):
         result={}
         for collision in opt_neighbors:
             result.update(self.q_reward_incremental_dictionary(cell_index,localHistory,collision))
-        return [(action,reward) for action,reward in result.items() if reward==max(result.values()) and action[1] not in pkd.hops][0]
+        listResult=[]
+        counter_unknown=0
+        for action,reward in result.items():
+            if action[1]==None:
+                listResult.append((action,reward))
+            elif action[1].identifier not in pkd.hops:
+                listResult.append((action,reward))
+            if reward==-3:
+                counter_unknown+=1
+        if counter_unknown==len(result.items()):
+            return (("x",self.best_context_selection(opti,pkd),"x","x"),1)
+        listResult.sort(key=lambda x:x[1],reverse=True)
+        return listResult[0]
+    def best_context_selection(self, opt_neighbors, pkd):
+        """ arg min score  -> geographical approach, take the drone closest to the depot """
+        best_drone_distance_from_depot = util.euclidean_distance(self.simulator.depot.coords, self.drone.coords)
+        best_drone = None
+        for hpk, drone_istance in opt_neighbors:
+            exp_position = hpk.cur_pos  # without estimation, a simple geographic approach
+           # exp_position= self.__estimated_neighbor_drone_position(hpk)
+            exp_distance = util.euclidean_distance(exp_position, self.simulator.depot.coords)
+            if exp_distance < best_drone_distance_from_depot:
+                best_drone_distance_from_depot = exp_distance
+                best_drone = drone_istance
+        return best_drone
+    def is_coming_back(self,hellopacket):
+        return hellopacket.next_target==self.simulator.depot_coordinates
+
 
         
         

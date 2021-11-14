@@ -42,7 +42,7 @@ DEBUG = False                         # bool: whether to print debug strings or 
 EXPERIMENTS_DIR = "data/experiments/"  # output data : the results of the simulation
 
 # drawaing
-PLOT_SIM = True      # bool: whether to plot or not the simulation.
+PLOT_SIM = False      # bool: whether to plot or not the simulation.
 WAIT_SIM_STEP = 0     # float: seconds, pauses the rendering for 'DELAY_PLOT' seconds.
 SKIP_SIM_STEP = 30     # int: steps, plot the simulation every 'RENDERING_STEP' steps. At least 1.
 DRAW_SIZE = 700       # int: size of the drawing window.
@@ -56,7 +56,7 @@ SAVE_PLOT_DIR = "data/plots/"
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
 SIM_DURATION = 48000 # int: steps of simulation. # ***
 TS_DURATION = 0.150   # float: seconds duration of a step in seconds.
-SEED = 5        # int: seed of this simulation.
+SEED = 2        # int: seed of this simulation.
 
 N_DRONES = 5  # int: number of drones. # ***
 ENV_WIDTH = 1500      # float: meters, width of environment.
@@ -116,9 +116,7 @@ HELLO_DELAY = 5            # int : how many time steps wait before transmit agai
 RECEPTION_GRANTED = 0.95   # float : the min amount of success to evalute a neigh as relay
 LIL_DELTA = 1              # INT:  > 0
 OLD_HELLO_PACKET = 50
-
 ROOT_EVALUATION_DATA = "data/evaluation_tests/"
-
 NN_MODEL_PATH = "data/nnmodels/"
 
 # --------------- new cell probabilities -------------- #

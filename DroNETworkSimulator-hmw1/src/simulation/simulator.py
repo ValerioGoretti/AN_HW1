@@ -226,9 +226,13 @@ class Simulator:
 
             if cur_step % 10000 == 0:
                 end = time.time()
-                print("step: " + str(cur_step), time.strftime("%H:%M:%S", time.gmtime(end - self.start)))
+                print("step: " + str(cur_step), time.strftime("%H:%M:%S", time.gmtime(end - self.start)),"-----------------------------------------------------------------------------------")
                 self.start = time.time()
-
+                try:
+                    self.print_metrics()
+                except:
+                    print(None)
+                    
             if self.show_plot or config.SAVE_PLOT:
                 self.__plot(cur_step)
 
