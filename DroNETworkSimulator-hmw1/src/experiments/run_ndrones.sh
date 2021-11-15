@@ -18,6 +18,5 @@ do
     done;
 done; 
 wait
-
 python -m src.experiments.json_and_plot -nd 5 -nd 10 -nd 15 -nd 30 -i_s 20 -e_s 30 -exp_suffix GEO -exp_suffix RND -exp_suffix AI
 

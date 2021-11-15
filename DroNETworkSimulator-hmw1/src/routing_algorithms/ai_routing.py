@@ -27,6 +27,8 @@ class AIRouting(BASE_routing):
         self.actions_timestamp={}
         #Dictionary for incremental formula action->Q(action)
         self.qN_dictionary={}
+        #Dictionary of the packets timestamp
+        self.pkdTs={}
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
         actual_time=time.time()
@@ -35,28 +37,31 @@ class AIRouting(BASE_routing):
             for action in action_list:
                 action_delay=actual_time-self.actions_timestamp[action]
                 if outcome==-1:
-                    self.actions_rewards[action].append(-4)
+                    r=self.pkdTs[id_event]-self.actions_timestamp[action]
+                    if r>1.9:
+                        r=2
+                    self.actions_rewards[action].append(r)
                     n=len(self.actions_rewards[action])
                     qN=self.qN_dictionary[action]
-                    self.qN_dictionary[action]=qN+(1/n)*((-4)-qN) 
+                    self.qN_dictionary[action]=qN+(1/n)*((-5+r)-qN) 
                 else:
                     self.actions_rewards[action].append((-1)*(action_delay))
                     n=len(self.actions_rewards[action])
                     qN=self.qN_dictionary[action]
                     self.qN_dictionary[action]=qN+(1/n)*(action_delay-qN)
-                   
-
     def relay_selection(self, opt_neighbors, pkd):
         """ arg min score  -> geographical approach, take the drone closest to the depot """
         # Only if you need --> several features:
         #Cell index of the position of the drone
+        if pkd.event_ref.identifier not in self.pkdTs.keys():
+            self.pkdTs[pkd.event_ref.identifier]=pkd.timestamp_generation
         cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
                                                       width_area=self.simulator.env_width,
                                                        x_pos=self.drone.coords[0],  # e.g. 1500
                                                         y_pos=self.drone.coords[1])[0]  # e.g. 500
         #Total set of waypoint
         globalhistory=self.drone.waypoint_history
-        localHistory=[]
+        localHistory=[]            
         for point in reversed(globalhistory):
             if point==(750,0):
                 break
@@ -80,7 +85,7 @@ class AIRouting(BASE_routing):
             if isRandomChoice:
                 geo_drone=self.best_context_selection(opt_neighbors,pkd)
                 random_choice=self.untaken_drone(opt_neighbors2,pkd)
-                drone=random.choices([geo_drone,random_choice],weights=(0,100),k=1)[0]
+                drone=random.choices([geo_drone,random_choice],weights=(10,90),k=1)[0]
                 for collision in opt_neighbors2:
                     if collision!=drone:
                         self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
@@ -92,7 +97,7 @@ class AIRouting(BASE_routing):
                         self.actions_set.add((cell_index,drone,hash(str(localHistory)),collision))
                 return drone
             else:
-                greedy_action,reward=self.perform_greedy_action_incremental(cell_index,localHistory,opt_neighbors2,pkd,opt_neighbors)
+                greedy_action,reward,ds,pd=self.perform_greedy_action_incremental(cell_index,localHistory,opt_neighbors2,pkd,opt_neighbors)
                 for collision in opt_neighbors2:        
                     if collision!=greedy_action[1]:
                         self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
@@ -140,18 +145,26 @@ class AIRouting(BASE_routing):
         result={}
         for collision in opt_neighbors:
             result.update(self.q_reward_incremental_dictionary(cell_index,localHistory,collision))
+        distances={}
+        isComingBack={}
+        if self.drone.next_target==self.simulator.depot.coords:
+            isComingBack[None]=1
+        else:
+            isComingBack[None]=0
+        for hpk,drone_instance in opti:
+            estimate_position=self.__estimated_neighbor_drone_position(hpk)
+            distances[drone_instance]=util.euclidean_distance(self.simulator.depot.coords,estimate_position)
+            if hpk.next_target==self.simulator.depot.coords:
+                isComingBack[drone_instance]=1
+            else:
+                isComingBack[drone_instance]=0
         listResult=[]
-        counter_unknown=0
         for action,reward in result.items():
             if action[1]==None:
-                listResult.append((action,reward))
+                listResult.append((action,reward,util.euclidean_distance(self.simulator.depot.coords, self.drone.coords),isComingBack[action[1]]))
             elif action[1].identifier not in pkd.hops:
-                listResult.append((action,reward))
-            if reward==-3:
-                counter_unknown+=1
-        if counter_unknown==len(result.items()):
-            return (("x",self.best_context_selection(opti,pkd),"x","x"),1)
-        listResult.sort(key=lambda x:x[1],reverse=True)
+                listResult.append((action,reward,distances[action[1]],isComingBack[action[1]])   )
+        listResult.sort(key=lambda x:(x[1],-x[2]),reverse=True)
         return listResult[0]
     def best_context_selection(self, opt_neighbors, pkd):
         """ arg min score  -> geographical approach, take the drone closest to the depot """
@@ -167,7 +180,29 @@ class AIRouting(BASE_routing):
         return best_drone
     def is_coming_back(self,hellopacket):
         return hellopacket.next_target==self.simulator.depot_coordinates
+    
+    def __estimated_neighbor_drone_position(self, hello_message):
+        # get known info about the neighbor drone
+        hello_message_time = hello_message.time_step_creation
+        known_position = hello_message.cur_pos
+        known_speed = hello_message.speed
+        known_next_target = hello_message.next_target
 
+        # compute the time elapsed since the message sent and now
+        # elapsed_time in seconds = elapsed_time in steps * step_duration_in_seconds
+        elapsed_time = (self.simulator.cur_step - hello_message_time) * self.simulator.time_step_duration  # seconds
+
+        # distance traveled by drone
+        distance_traveled = elapsed_time * known_speed
+
+        # direction vector
+        a, b = np.asarray(known_position), np.asarray(known_next_target)
+        v_ = (b - a) / np.linalg.norm(b - a)
+
+        # compute the expect position
+        c = a + (distance_traveled * v_)
+
+        return tuple(c)
 
         
         
