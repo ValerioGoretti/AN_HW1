@@ -60,18 +60,15 @@ class Event(Entity):
     def is_expired(self, cur_step):
         """ return true if the deadline expired """
         return cur_step > self.deadline
-
     def as_packet(self, time_step_creation, drone):
         """ build a packet out of the event, by default the packet has deadline set to that of the event
             so the packet dies at the same time of the event, then add the input drone as first hop
         """
         # Notice: called only when a packet is created
-
         pck = DataPacket(time_step_creation, self.simulator, event_ref=self)
         # if config.DEBUG_PRINT_PACKETS: print("data", pck, pck.src_drone, pck.dst_drone, self.current_time)
         pck.add_hop(drone)
         return pck
-
     def __repr__(self):
         return "Ev id:" + str(self.identifier) + " c:" + str(self.coords)
 
@@ -82,9 +79,7 @@ class Packet(Entity):
     def __init__(self, time_step_creation, simulator, event_ref: Event = None):
         """ the event associated to the packet, time step in which the packet was created
          as for now, every packet is an event. """
-
         event_ref_crafted = event_ref if event_ref is not None else Event((-1, -1), -1, simulator)  # default event if packet is not associated to the event
-
         # id(self) is the id of this instance (unique for every new created packet),
         # the coordinates are those of the event
         super().__init__(id(self), event_ref_crafted.coords, simulator)

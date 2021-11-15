@@ -21,8 +21,6 @@ class GeoRouting(BASE_routing):
                 best_drone = drone_istance
 
         return best_drone
-
-
     def __estimated_neighbor_drone_position(self, hello_message):
         """ estimate the current position of the drone """
 
