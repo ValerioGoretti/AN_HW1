@@ -1,6 +1,7 @@
 import numpy as np
 import hashlib
 import time
+from src.utilities import config
 from src.utilities import utilities as util
 from src.routing_algorithms.BASE_routing import BASE_routing
 import  random
@@ -32,7 +33,7 @@ class AIRouting(BASE_routing):
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
         #----------------
-        actual_time=time.time()
+        actual_time=self.simulator.cur_step
         #time
         #actual_time=self.simulator.cur_step
         if id_event in self.taken_actions.keys():
@@ -42,13 +43,12 @@ class AIRouting(BASE_routing):
                 if outcome==-1:
                     r=self.actions_timestamp[action]-self.pkdTs[id_event]
                     #print(self.actions_timestamp[action],self.pkdTs[id_event],r)
-                    if r>1.6:
-                        print(self.actions_timestamp[action],self.pkdTs[id_event],r)
-                        r=2
+                    if r>1700:
+                        r=2000
                     self.actions_rewards[action].append(r)
                     n=len(self.actions_rewards[action])
                     qN=self.qN_dictionary[action]
-                    self.qN_dictionary[action]=qN+(1/n)*((-5+r)-qN) 
+                    self.qN_dictionary[action]=qN+(1/n)*((-5000+r)-qN) 
                 else:
                     self.actions_rewards[action].append((-1)*(action_delay))
                     n=len(self.actions_rewards[action])
@@ -60,7 +60,7 @@ class AIRouting(BASE_routing):
         #Cell index of the position of the drone
         if pkd.event_ref.identifier not in self.pkdTs.keys():
             #time
-            self.pkdTs[pkd.event_ref.identifier]=pkd.timestamp_generation
+            self.pkdTs[pkd.event_ref.identifier]=pkd.time_step_creation
         cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
                                                       width_area=self.simulator.env_width,
                                                        x_pos=self.drone.coords[0],  # e.g. 1500
@@ -81,11 +81,11 @@ class AIRouting(BASE_routing):
                     self.actions_set.add((cell_index,d,hash(str(localHistory)),d))
                     self.actions_rewards[(cell_index,None,hash(str(localHistory)),d)]=[]
                     self.actions_set.add((cell_index,None,hash(str(localHistory)),d))
-                    self.qN_dictionary[(cell_index,None,hash(str(localHistory)),d)]=-3
-                    self.qN_dictionary[(cell_index,d,hash(str(localHistory)),d)]=-3
+                    self.qN_dictionary[(cell_index,None,hash(str(localHistory)),d)]=-3000
+                    self.qN_dictionary[(cell_index,d,hash(str(localHistory)),d)]=-3000
             isRandomChoice=random.choices([True,False],weights=(0,100),k=1)[0]
             opt_neighbors2=[v[1] for v in opt_neighbors]
-            actual_time=time.time()
+            actual_time=self.simulator.cur_step
             #time
             #actual_time=self.simulator.cur_step
             if pkd.event_ref.identifier not in self.taken_actions.keys():
@@ -160,16 +160,19 @@ class AIRouting(BASE_routing):
         distances={}
         isComingBack={}
         if self.drone.next_target()==self.simulator.depot.coords:
-            isComingBack[None]=1
+            isComingBack[None]=(1, -self.arrival_time(self.drone))
+
         else:
-            isComingBack[None]=0
+            isComingBack[None]=(0, -1000)
+
         for hpk,drone_instance in opti:
             estimate_position=self.__estimated_neighbor_drone_position(hpk)
             distances[drone_instance]=util.euclidean_distance(self.simulator.depot.coords,estimate_position)
             if hpk.next_target==self.simulator.depot.coords:
-                isComingBack[drone_instance]=1
+                isComingBack[drone_instance]=(1, -self.arrival_time(drone_instance))
             else:
-                isComingBack[drone_instance]=0
+                isComingBack[drone_instance]=(0, -1000)
+
         listResult=[]
         for action,reward in result.items():
             if action[1]==None:
@@ -192,6 +195,8 @@ class AIRouting(BASE_routing):
         return best_drone
     def is_coming_back(self,hellopacket):
         return hellopacket.next_target==self.simulator.depot_coordinates
+    def arrival_time(self, drone):
+        return util.euclidean_distance(self.simulator.depot.coords, drone.coords) / drone.speed
     
     def __estimated_neighbor_drone_position(self, hello_message):
         # get known info about the neighbor drone

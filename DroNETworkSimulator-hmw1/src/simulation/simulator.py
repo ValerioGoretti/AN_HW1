@@ -5,7 +5,6 @@ from src.simulation.metrics import Metrics
 from src.utilities import config, utilities
 from src.routing_algorithms.net_routing import MediumDispatcher
 from collections import defaultdict
-
 import numpy as np
 import math
 import time
