@@ -31,14 +31,19 @@ class AIRouting(BASE_routing):
         self.pkdTs={}
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
+        #----------------
         actual_time=time.time()
+        #time
+        #actual_time=self.simulator.cur_step
         if id_event in self.taken_actions.keys():
             action_list=self.taken_actions[id_event]
             for action in action_list:
                 action_delay=actual_time-self.actions_timestamp[action]
                 if outcome==-1:
-                    r=self.pkdTs[id_event]-self.actions_timestamp[action]
-                    if r>1.7:
+                    r=self.actions_timestamp[action]-self.pkdTs[id_event]
+                    #print(self.actions_timestamp[action],self.pkdTs[id_event],r)
+                    if r>1.6:
+                        print(self.actions_timestamp[action],self.pkdTs[id_event],r)
                         r=2
                     self.actions_rewards[action].append(r)
                     n=len(self.actions_rewards[action])
@@ -54,6 +59,7 @@ class AIRouting(BASE_routing):
         # Only if you need --> several features:
         #Cell index of the position of the drone
         if pkd.event_ref.identifier not in self.pkdTs.keys():
+            #time
             self.pkdTs[pkd.event_ref.identifier]=pkd.timestamp_generation
         cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
                                                       width_area=self.simulator.env_width,
@@ -80,6 +86,8 @@ class AIRouting(BASE_routing):
             isRandomChoice=random.choices([True,False],weights=(0,100),k=1)[0]
             opt_neighbors2=[v[1] for v in opt_neighbors]
             actual_time=time.time()
+            #time
+            #actual_time=self.simulator.cur_step
             if pkd.event_ref.identifier not in self.taken_actions.keys():
                 self.taken_actions[pkd.event_ref.identifier]=set([])
             if isRandomChoice:

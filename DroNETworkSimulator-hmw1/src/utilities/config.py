@@ -54,9 +54,9 @@ SAVE_PLOT_DIR = "data/plots/"
 
 # add constants here...
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 500000 # int: steps of simulation. # ***
+SIM_DURATION = 1000000 # int: steps of simulation. # ***
 TS_DURATION = 0.150   # float: seconds duration of a step in seconds.
-SEED = 1          # int: seed of this simulation.
+SEED = 17          # int: seed of this simulation.
 
 N_DRONES = 5  # int: number of drones. # ***
 ENV_WIDTH = 1500      # float: meters, width of environment.
@@ -106,7 +106,7 @@ class ChannelError(Enum):
         return list(map(lambda c: c.name, ChannelError))
 
 
-ROUTING_ALGORITHM = RoutingAlgorithm.GEO
+ROUTING_ALGORITHM = RoutingAlgorithm.AI
 CHANNEL_ERROR_TYPE = ChannelError.ON_DEVICE
 
 COMMUNICATION_P_SUCCESS = 1   # float: probability to have success in a communication.
