@@ -9,6 +9,8 @@ from collections import defaultdict
 import numpy as np
 import math
 import time
+import json
+import os
 
 """
 This file contains the Simulation class. It allows to explicit all the relevant parameters of the simulation,
@@ -228,6 +230,12 @@ class Simulator:
                 end = time.time()
                 print("step: " + str(cur_step), time.strftime("%H:%M:%S", time.gmtime(end - self.start)))
                 self.start = time.time()
+                try:
+                    self.print_metrics()
+                    # OUR TEST
+                    self.createJson(cur_step,self.metrics.number_of_events_to_depot / self.metrics.number_of_generated_events,np.nanmean(self.metrics.mean_numbers_of_possible_relays),self.metrics.packet_mean_delivery_time, self.score())
+                except:
+                    print("eccezione")
 
             if self.show_plot or config.SAVE_PLOT:
                 self.__plot(cur_step)
@@ -263,3 +271,21 @@ class Simulator:
         score = round(self.metrics.score(), 2)
         print("Score sim " + self.simulation_name + ":", score)
         return score
+
+        # OUR TEST
+        def createJson(self, step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score):
+            name = 'test_' + str(self.n_drones) + '_' + str(self.routing_algorithm.name) + '.json'
+            if not os.path.isfile(name):
+                with open(name, "w+") as file:
+                    json.dump({}, file)
+
+            with open(name, "r") as file:
+                data = json.load(file)
+
+            if str(self.seed) in data.keys():
+                data[str(self.seed)].append((step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score))
+            else:
+                data[str(self.seed)] = [(step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score)]
+
+            with open(name, 'w') as fp:
+                json.dump(data, fp)
