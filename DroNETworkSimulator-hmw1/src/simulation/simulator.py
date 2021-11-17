@@ -272,20 +272,20 @@ class Simulator:
         print("Score sim " + self.simulation_name + ":", score)
         return score
 
-        # OUR TEST
-        def createJson(self, step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score):
-            name = 'test_' + str(self.n_drones) + '_' + str(self.routing_algorithm.name) + '.json'
-            if not os.path.isfile(name):
-                with open(name, "w+") as file:
-                    json.dump({}, file)
+    # OUR TEST
+    def createJson(self, step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score):
+        name = 'test_' + str(self.n_drones) + '_' + str(self.routing_algorithm.name) + '.json'
+        if not os.path.isfile(name):
+            with open(name, "w+") as file:
+                json.dump({}, file)
 
-            with open(name, "r") as file:
-                data = json.load(file)
+        with open(name, "r") as file:
+            data = json.load(file)
 
-            if str(self.seed) in data.keys():
-                data[str(self.seed)].append((step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score))
-            else:
-                data[str(self.seed)] = [(step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score)]
+        if str(self.seed) in data.keys():
+            data[str(self.seed)].append((step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score))
+        else:
+            data[str(self.seed)] = [(step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score)]
 
-            with open(name, 'w') as fp:
-                json.dump(data, fp)
+        with open(name, 'w') as fp:
+            json.dump(data, fp)
