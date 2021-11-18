@@ -3,7 +3,8 @@ from src.routing_algorithms.georouting import GeoRouting
 from src.routing_algorithms.random_routing import RandomRouting
 from src.routing_algorithms.closeset_to_me_routing import CloRouting
 from src.routing_algorithms.ai_routing import AIRouting
-
+from src.routing_algorithms.ai2 import AIRouting_01
+from src.routing_algorithms.ai3 import AIRouting_001
 from enum import Enum
 
 
@@ -42,7 +43,7 @@ DEBUG = False                         # bool: whether to print debug strings or 
 EXPERIMENTS_DIR = "data/experiments/"  # output data : the results of the simulation
 
 # drawaing
-PLOT_SIM = True      # bool: whether to plot or not the simulation.
+PLOT_SIM = False      # bool: whether to plot or not the simulation.
 WAIT_SIM_STEP = 0     # float: seconds, pauses the rendering for 'DELAY_PLOT' seconds.
 SKIP_SIM_STEP = 30     # int: steps, plot the simulation every 'RENDERING_STEP' steps. At least 1.
 DRAW_SIZE = 700       # int: size of the drawing window.
@@ -54,7 +55,7 @@ SAVE_PLOT_DIR = "data/plots/"
 
 # add constants here...
 # ----------------------------- SIMULATION PARAMS. ---------------------------- #
-SIM_DURATION = 15000 # int: steps of simulation. # ***
+SIM_DURATION = 48000 # int: steps of simulation. # ***
 TS_DURATION = 0.150   # float: seconds duration of a step in seconds.
 SEED = 5          # int: seed of this simulation.
 
@@ -90,6 +91,8 @@ class RoutingAlgorithm(Enum):
     RND = RandomRouting
     CLO = CloRouting
     AI = AIRouting
+    AI_01=AIRouting_01
+    AI_001=AIRouting_001
 
     @staticmethod
     def keylist():

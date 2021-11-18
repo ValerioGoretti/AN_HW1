@@ -34,15 +34,12 @@ class AIRouting(BASE_routing):
         """ return a possible feedback, if the destination drone has received the packet """
         #----------------
         actual_time=self.simulator.cur_step
-        #time
-        #actual_time=self.simulator.cur_step
         if id_event in self.taken_actions.keys():
             action_list=self.taken_actions[id_event]
             for action in action_list:
                 action_delay=actual_time-self.actions_timestamp[action]
                 if outcome==-1:
                     r=self.actions_timestamp[action]-self.pkdTs[id_event]
-                    #print(self.actions_timestamp[action],self.pkdTs[id_event],r)
                     if r>1700:
                         r=2000
                     self.actions_rewards[action].append(r)
@@ -71,55 +68,49 @@ class AIRouting(BASE_routing):
         for point in reversed(globalhistory):
             if point==(750,0):
                 break
-            localHistory.insert(0,point)
-        #No sense if, it will be used later to distinguish the ferry drones
-        if self.drone.identifier not in set(["x"]):
-            #Initialization of the reward dictionary with default value for every neighboor
-            for d in [v[1] for v in opt_neighbors]:
-                if (cell_index,d,hash(str(localHistory)),d) not in self.actions_rewards.keys():
-                    self.actions_rewards[(cell_index,d,hash(str(localHistory)),d)]=[]
-                    self.actions_set.add((cell_index,d,hash(str(localHistory)),d))
-                    self.actions_rewards[(cell_index,None,hash(str(localHistory)),d)]=[]
-                    self.actions_set.add((cell_index,None,hash(str(localHistory)),d))
-                    self.qN_dictionary[(cell_index,None,hash(str(localHistory)),d)]=-3000
-                    self.qN_dictionary[(cell_index,d,hash(str(localHistory)),d)]=-3000
-            isRandomChoice=random.choices([True,False],weights=(0,100),k=1)[0]
-            opt_neighbors2=[v[1] for v in opt_neighbors]
-            actual_time=self.simulator.cur_step
-            #time
-            #actual_time=self.simulator.cur_step
-            if pkd.event_ref.identifier not in self.taken_actions.keys():
-                self.taken_actions[pkd.event_ref.identifier]=set([])
-            if isRandomChoice:
-                geo_drone=self.best_context_selection(opt_neighbors,pkd)
-                random_choice=self.untaken_drone(opt_neighbors2,pkd)
-                drone=random.choices([geo_drone,random_choice],weights=(0,100),k=1)[0]
-                for collision in opt_neighbors2:
-                    if collision!=drone:
-                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
-                        self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
-                        self.actions_set.add((cell_index,None,hash(str(localHistory)),collision))
-                    else:
-                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,drone,hash(str(localHistory)),collision))
-                        self.actions_timestamp[(cell_index,drone,hash(str(localHistory)),collision)]=actual_time
-                        self.actions_set.add((cell_index,drone,hash(str(localHistory)),collision))
-                return drone
-            else:
-                greedy_action,reward,ds,pd=self.perform_greedy_action_incremental(cell_index,localHistory,opt_neighbors2,pkd,opt_neighbors)
-                for collision in opt_neighbors2:  
-                    '''if self.drone.next_target() == self.simulator.depot.coords and self.drone.identifier == 3: 
-                        print("-----------------------------I am going to depot----------------------------")
-                        print("Greedy Action : ", greedy_action[1]) '''   
-                    if collision!=greedy_action[1]:
-                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
-                        self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
-                        self.actions_set.add((cell_index,None,hash(str(localHistory)),collision))
-                    else:
-                        self.taken_actions[pkd.event_ref.identifier].add((cell_index,greedy_action[1],hash(str(localHistory)),collision))
-                        self.actions_timestamp[(cell_index,greedy_action[1],hash(str(localHistory)),collision)]=actual_time
-                        self.actions_set.add((cell_index,greedy_action[1],hash(str(localHistory)),collision))
-                return greedy_action[1]
-        return None
+            localHistory.insert(0,point)    
+        #Initialization of the reward dictionary with default value for every neighboor
+        for d in [v[1] for v in opt_neighbors]:
+            if (cell_index,d,hash(str(localHistory)),d) not in self.actions_rewards.keys():
+                self.actions_rewards[(cell_index,d,hash(str(localHistory)),d)]=[]
+                self.actions_set.add((cell_index,d,hash(str(localHistory)),d))
+                self.actions_rewards[(cell_index,None,hash(str(localHistory)),d)]=[]
+                self.actions_set.add((cell_index,None,hash(str(localHistory)),d))
+                self.qN_dictionary[(cell_index,None,hash(str(localHistory)),d)]=-3000
+                self.qN_dictionary[(cell_index,d,hash(str(localHistory)),d)]=-3000
+        isRandomChoice=random.choices([True,False],weights=(0,100),k=1)[0]
+        opt_neighbors2=[v[1] for v in opt_neighbors]
+        actual_time=self.simulator.cur_step
+        #time
+        if pkd.event_ref.identifier not in self.taken_actions.keys():
+            self.taken_actions[pkd.event_ref.identifier]=set([])
+        if isRandomChoice:
+            geo_drone=self.best_context_selection(opt_neighbors,pkd)
+            random_choice=self.untaken_drone(opt_neighbors2,pkd)
+            drone=random.choices([geo_drone,random_choice],weights=(0,100),k=1)[0]
+            for collision in opt_neighbors2:
+                if collision!=drone:
+                    self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
+                    self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
+                    self.actions_set.add((cell_index,None,hash(str(localHistory)),collision))
+                else:
+                    self.taken_actions[pkd.event_ref.identifier].add((cell_index,drone,hash(str(localHistory)),collision))
+                    self.actions_timestamp[(cell_index,drone,hash(str(localHistory)),collision)]=actual_time
+                    self.actions_set.add((cell_index,drone,hash(str(localHistory)),collision))
+            return drone
+        else:
+            greedy_action,reward,ds,pd=self.perform_greedy_action_incremental(cell_index,localHistory,opt_neighbors2,pkd,opt_neighbors)
+            for collision in opt_neighbors2:  
+                if collision!=greedy_action[1]:
+                    self.taken_actions[pkd.event_ref.identifier].add((cell_index,None,hash(str(localHistory)),collision))
+                    self.actions_timestamp[(cell_index,None,hash(str(localHistory)),collision)]=actual_time
+                    self.actions_set.add((cell_index,None,hash(str(localHistory)),collision))
+                else:
+                    self.taken_actions[pkd.event_ref.identifier].add((cell_index,greedy_action[1],hash(str(localHistory)),collision))
+                    self.actions_timestamp[(cell_index,greedy_action[1],hash(str(localHistory)),collision)]=actual_time
+                    self.actions_set.add((cell_index,greedy_action[1],hash(str(localHistory)),collision))
+            return greedy_action[1]
+    
     def print(self):
         pass
     def untaken_drone(self,opt_neighbors,pkd):
@@ -129,22 +120,6 @@ class AIRouting(BASE_routing):
                 return drone
             if drone.identifier not in pkd.hops:
                 return drone   
-    def q_reward_dictionary(self,cell_index,localHistory,collision):
-        past_actions=[x for x in self.actions_set if x[0]==cell_index and x[2]==hash(str(localHistory))and x[3]==collision]
-        counter_cell_localhistory=0
-        result={}
-        for action in past_actions:
-            if len(self.actions_rewards[action])!=0:
-                counter_cell_localhistory+=1
-                result[action]=statistics.mean(self.actions_rewards[action])
-            else:
-                result[action]=-3
-        return result
-    def perform_greedy_action(self,cell_index,localHistory,opt_neighbors,pkd):
-        result={}
-        for collision in opt_neighbors:
-            result.update(self.q_reward_dictionary(cell_index,localHistory,collision))
-        return [(action,reward) for action,reward in result.items() if reward==max(result.values()) and action[1].identifier not in pkd.hops][0]
     def q_reward_incremental_dictionary(self,cell_index,localHistory,collision):
         past_actions=[x for x in self.actions_set if x[0]==cell_index and x[2]==hash(str(localHistory))and x[3]==collision]
         counter_cell_localhistory=0

@@ -234,8 +234,9 @@ class Simulator:
                     self.print_metrics()
                     # OUR TEST
                     self.createJson(cur_step,self.metrics.number_of_events_to_depot / self.metrics.number_of_generated_events,np.nanmean(self.metrics.mean_numbers_of_possible_relays),self.metrics.packet_mean_delivery_time, self.score())
-                except:
-                    print("eccezione")
+                except Exception as e:
+
+                    print(e)
 
             if self.show_plot or config.SAVE_PLOT:
                 self.__plot(cur_step)
@@ -273,19 +274,19 @@ class Simulator:
         return score
 
         # OUR TEST
-        def createJson(self, step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score):
-            name = 'test_' + str(self.n_drones) + '_' + str(self.routing_algorithm.name) + '.json'
-            if not os.path.isfile(name):
-                with open(name, "w+") as file:
-                    json.dump({}, file)
+    def createJson(self, step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score):
+        name = 'test_' + str(self.n_drones) + '_' + str(self.routing_algorithm.name) + '.json'
+        if not os.path.isfile(name):
+            with open(name, "w+") as file:
+                json.dump({}, file)
 
-            with open(name, "r") as file:
-                data = json.load(file)
+        with open(name, "r") as file:
+            data = json.load(file)
 
-            if str(self.seed) in data.keys():
-                data[str(self.seed)].append((step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score))
-            else:
-                data[str(self.seed)] = [(step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score)]
+        if str(self.seed) in data.keys():
+            data[str(self.seed)].append((step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score))
+        else:
+            data[str(self.seed)] = [(step, delivery_ratio, mean_number_of_relays, packet_mean_delivery_time, score)]
 
-            with open(name, 'w') as fp:
-                json.dump(data, fp)
+        with open(name, 'w') as fp:
+            json.dump(data, fp)
