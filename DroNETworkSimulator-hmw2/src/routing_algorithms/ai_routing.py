@@ -11,6 +11,7 @@ class AIRouting(BASE_routing):
         # random generator
         self.rnd_for_routing_ai = np.random.RandomState(self.simulator.seed)
         self.taken_actions = {}  #id event : (old_action)
+        self.waypoints0 = []
 
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
@@ -38,11 +39,22 @@ class AIRouting(BASE_routing):
         # self.drone.speed
 
         # Only if you need --> several features:
-        # cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
-        #                                                width_area=self.simulator.env_width,
-        #                                                x_pos=self.drone.coords[0],  # e.g. 1500
-        #                                                y_pos=self.drone.coords[1])[0]  # e.g. 500
+        cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
+                                                        width_area=self.simulator.env_width,
+                                                        x_pos=self.drone.coords[0],  # e.g. 1500
+                                                        y_pos=self.drone.coords[1])[0]  # e.g. 500
         # print(cell_index)
+        if self.drone.identifier == 0:
+            if len(self.waypoints0) == 0:
+                self.waypoints0.append(self.drone.next_target())
+            elif self.drone.next_target() != self.waypoints0[-1]:
+                if self.drone.next_target() != self.waypoints0[0]:
+                    self.waypoints0.append(self.drone.next_target())
+
+
+
+
+
         action = None
 
         # self.drone.history_path (which waypoint I traversed. We assume the mission is repeated)
