@@ -76,7 +76,7 @@ P_FEEL_EVENT = .8       # float: probability that the drones feels the event gen
 # drones
 COMMUNICATION_RANGE_DRONE = 200  # float: meters, communication range of the drones.
 SENSING_RANGE_DRONE = 0        # float: meters, the sensing range of the drones.
-DRONE_SPEED = 30                 # float: m/s, drone speed.
+DRONE_SPEED = 8                 # float: m/s, drone speed.
 DRONE_MAX_BUFFER_SIZE = 100     # int: max number of packets in the buffer of a drone.
 DRONE_MAX_ENERGY = 12000000           # int: max energy of a drone, possible travelled distance (meters)
 DRONE_MIN_FLIGHT_TIME = 3200000  #  possible travelled distance (meters)

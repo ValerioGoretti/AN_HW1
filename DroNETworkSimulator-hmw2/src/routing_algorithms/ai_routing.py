@@ -51,7 +51,7 @@ class AIRouting(BASE_routing):
         #NB: QUANDO UN DRONE STA TORNANDO AL DEPOT NON PUO' PRENDERE PACCHETTI
 
         # Salvataggio del path al primo giro
-        if self.drone_path == []:
+        if self.drone_path == [] and self.drone.waypoint_history != []:
             if self.drone.waypoint_history[self.drone.current_waypoint - 1][1] < self.drone.waypoint_history[self.drone.current_waypoint - 2][1]:
                 self.drone_path = self.drone.waypoint_history.copy()
                 # print(self.drone_path)
@@ -64,10 +64,11 @@ class AIRouting(BASE_routing):
                 return -1
 
         for hpk, drone_instance in opt_neighbors:
-            if drone_instance.next_target()[1] == drone_instance.waypoint_history[0][1]:
-                #print("PACCHETTO DA: ", self.drone.identifier, "  A: ", drone_instance )
-                #print(self.simulator.cur_step)
-                return drone_instance
+            if drone_instance.waypoint_history != []:
+                if drone_instance.next_target()[1] == drone_instance.waypoint_history[0][1]:
+                    #print("PACCHETTO DA: ", self.drone.identifier, "  A: ", drone_instance )
+                    #print(self.simulator.cur_step)
+                    return drone_instance
 
 
         if self.arrival_time(self.drone) > (self.simulator.len_simulation - self.simulator.cur_step)-300:
