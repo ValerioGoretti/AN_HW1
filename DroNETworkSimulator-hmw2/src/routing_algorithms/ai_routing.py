@@ -5,12 +5,14 @@ from src.routing_algorithms.BASE_routing import BASE_routing
 from matplotlib import pyplot as plt
 from src.utilities import config
 import time
+import random
+
 class AIRouting(BASE_routing):
     def __init__(self, drone, simulator):
         BASE_routing.__init__(self, drone, simulator)
         # random generator
         self.rnd_for_routing_ai = np.random.RandomState(self.simulator.seed)
-        self.taken_actions = {}  #id event : (old_action)
+        self.taken_actions = {}  #id event : [action]
         self.drone_path=[]
         self.counter=0
         self.set_collision=set({})
@@ -20,6 +22,10 @@ class AIRouting(BASE_routing):
         self.packet_set=set()
         self.packet_generation=[]
         self.first_waypoint=None
+
+        self.qtable={}
+
+
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
         if config.DEBUG:
@@ -47,31 +53,58 @@ class AIRouting(BASE_routing):
             if outcome==0:
                 self.packet_dictio[id_event]=True
 
+
     def relay_selection(self, opt_neighbors, pkd):
         """ arg min score  -> geographical approach, take the drone closest to the depot """
         cell_index = util.TraversedCells.coord_to_cell(size_cell=self.simulator.prob_size_cell,
                                                         width_area=self.simulator.env_width,
                                                         x_pos=self.drone.coords[0],  # e.g. 1500
                                                         y_pos=self.drone.coords[1])[0]  # e.g. 500
-       # if pkd.event_ref.identifier not in self.packet_set:
-        #    self.packet_set.add(pkd.event_ref.identifier)
-         #   self.packet_generation.append((pkd,pkd.time_step_creation))
-          #  self.packet_generation=sorted(self.packet_generation,key=lambda x: x[1])
-      #  if self.is_packet_expiring(self.packet_generation[0][0]):
-       #     if self.drone.identifier==1:
-        #        print(self.packet_generation[0][0].event_ref.identifier,self.packet_generation[0][1])
-        #    return-1
-       # if(self.drone.identifier==1):
-        #    print([x[1] for x in self.packet_generation])
 
+        print("DRONE ", self.drone.identifier, "   ", self.drone.all_packets(), " len ", len(self.drone.all_packets()))
+
+        for hpk, drone_instance in opt_neighbors:
+            #QUANDO C'è UNA COLLISIONE AGGUNGIAMO ALLA TABLE L'EVENTO SE NON C'è GIà E INIZIALIZZIAMO LE POSSIBILI MOSSE A 0.6
+            if (cell_index, self.drone.identifier, drone_instance.identifier) not in self.qtable.keys():
+                self.qtable[(cell_index, self.drone.identifier, drone_instance.identifier)]=(0.6, 0.6)
+                #print(self.qtable)
+            else:
+                if self.qtable[(cell_index, self.drone.identifier, drone_instance.identifier)][0]>self.qtable[(cell_index, self.drone.identifier, drone_instance.identifier)][1]:
+                    return None
+                else:
+                    if self.qtable[(cell_index, self.drone.identifier, drone_instance.identifier)][0]<=self.qtable[(cell_index, self.drone.identifier, drone_instance.identifier)][1]:
+                        if self.qtable[(cell_index, self.drone.identifier, drone_instance.identifier)][0] == self.qtable[(cell_index, self.drone.identifier, drone_instance.identifier)][1]:
+                            #print("==")
+                            a = random.randrange(0, 2)
+                            print(a)
+                            if a==0:
+                                return None
+                            else:
+                                if drone_instance not in pkd.hops:
+                                    if (cell_index,pkd.id) not in self.taken_actions:
+                                        print(self.simulator.cur_step, " PASSA A ", drone_instance, " da ", self.drone.identifier)
+                                        self.taken_actions[(cell_index,pkd.id)]={drone_instance,self.drone.identifier}
+                                        return drone_instance
+                                    else:
+                                        if {drone_instance,self.drone.identifier}.issubset(self.taken_actions[(cell_index,pkd.id)]):
+                                            self.taken_actions[(cell_index,pkd.id)].append({drone_instance,self.drone.identifier})
+                                            return drone_instance
+                        else:
+                            if drone_instance not in pkd.hops:
+                                return drone_instance
+
+        '''
         if self.is_time_to_goback():
             return -1
+
+
+
         if self.first_waypoint==None:
             self.first_waypoint=self.drone.next_target()
         globalhistory=self.drone.waypoint_history
-        localHistory=[]            
+        localHistory=[]
         for point in reversed(globalhistory):
-            localHistory.insert(0,point) 
+            localHistory.insert(0,point)
             self.set_waypoint.add(point)
             if point[0]==globalhistory[0][0] and point[1]==globalhistory[0][1]:
                 if len(localHistory)<len(self.set_waypoint):
@@ -82,26 +115,26 @@ class AIRouting(BASE_routing):
         if self.drone_path == [] and self.drone.waypoint_history != []:
             if self.drone.waypoint_history[self.drone.current_waypoint - 1][1] < self.drone.waypoint_history[self.drone.current_waypoint - 2][1]:
                 self.drone_path = self.drone.waypoint_history.copy()
+
+
+
         # Se path è ricominciato vai al depot
         elif self.drone.next_target() in self.drone_path:
             self.counter+=1
-           # if self.counter==1 and self.drone.identifier==2:
-                #print(self.drone.identifier,self.drone.next_target(),self.drone_path,len(self.drone_path))
             if self.drone_path.index(self.drone.next_target()) == 0 and self.drone.buffer_length() >= 3:
                 return -1
-        #for hpk, drone_instance in opt_neighbors:
-         #   if drone_instance.waypoint_history != []:
-          #      if drone_instance.next_target()[1] == drone_instance.waypoint_history[0][1]:
-           #         return drone_instance
+
+
         if self.arrival_time(self.drone) > (self.simulator.len_simulation - self.simulator.cur_step)-300:
             return -1
             #print("il drone ", self.drone.identifier, " è tornato")
-        action = None
-        for hpk, drone_instance in opt_neighbors:
-            #print(hpk)
-            continue
-        self.taken_actions[pkd.event_ref.identifier] = (action)                
-        return None  # here you should return a drone object!
+
+        '''
+
+
+
+        #action = None
+        #self.taken_actions[pkd.event_ref.identifier] = (action)
 
     def print(self):
         """
