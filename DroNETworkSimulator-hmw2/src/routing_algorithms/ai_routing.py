@@ -36,7 +36,7 @@ class AIRouting(BASE_routing):
         self.gamma = 0.8
 
         # learning rate
-        self.alpha = 0.6
+        self.alpha = 0.3
 
         # list to maintain (state, action) that need an update yet
         self.state_action_list = []
@@ -49,9 +49,6 @@ class AIRouting(BASE_routing):
 
         # pck buffer
         self.pkt_buffer = []
-
-        # AI choice
-        self.ai_choice = False
 
         # last choiche
         self.last_choice_index = None
@@ -70,12 +67,10 @@ class AIRouting(BASE_routing):
 
         # if the last choice was made by AI and the buffer length is still larger than 0,
         # then update Q table for all past actions without reward
-        if self.ai_choice and drone.buffer_length() != 0 and self.last_choice_index == 1:
+        if drone.buffer_length() != 0 and self.last_choice_index == 1:
 
             # local copy of state action
             local_state_action = self.state_action_list
-            # delete AI choice as last choice taken
-            self.ai_choice = False
             # cancel last choice made
             self.last_choice_index = None
             # set the state for final state
@@ -83,22 +78,25 @@ class AIRouting(BASE_routing):
             # packets delivered when the drone moved directly to the depot
             delivered_packets = set(drone.all_packets())
 
-            if drone.identifier == 1:
-                print("lista al momento della consegna")
-                print(self.state_action_list)
-                print("-----------------------------------")
+
+            print("DRONE", drone.identifier)
+            print(self.state_action_list)
+            print("-----------------------------------")
 
             for state, action_index in reversed(local_state_action):
-                # get the number of lost packets
-                lost_packets_num = len(set(self.state_action_packets[(state, action_index)]) - delivered_packets)
 
                 # get the number of packets delivered among those the drone had
-                #state_action_delivered_packets = len(set(self.state_action_packets[(state, action_index)]) & delivered_packets)
+                state_action_delivered_packets_num = len(set(self.state_action_packets[(state, action_index)]) & delivered_packets)
 
-                # percentage of lost packets
-                lost_packets_percent = (len(set(self.state_action_packets[(state, action_index)])) * 100) / 1
+                # percentage of delivered packets
+                delivered_packets_percent = (state_action_delivered_packets_num * 100) / len(set(self.state_action_packets[(state, action_index)]))
+
+                # get the max time the drone would take if it had at the farthest point from depot
+                max_time = self.get_max_time_to_depot(drone)
+
                 # reward
-                reward = self.final_time_to_depot / lost_packets_percent
+                reward = delivered_packets_percent - self.alpha * (self.final_time_to_depot / max_time)
+                print(reward)
                 # Q update formula
                 self.q_dict[state][action_index] = self.q_dict[state][action_index] + self.alpha * (reward + self.gamma * max(self.q_dict[future_state]) - self.q_dict[state][action_index])
                 # set the next future state
@@ -145,8 +143,7 @@ class AIRouting(BASE_routing):
 
 
         if self.is_packet_expiring(self.packet_generation[0][0]) and self.last_choice_index != 1:
-            # it means that the next action will made by AI
-            self.ai_choice = True
+
 
             # check if the drone has already taken an action in this (state, action) sequence for the current state (cell)
             if cell_index not in [x[0] for x in self.state_action_list]:
@@ -182,7 +179,7 @@ class AIRouting(BASE_routing):
         if self.is_time_to_goback():
             return -1
 
-        '''if self.first_waypoint==None:
+        if self.first_waypoint==None:
             self.first_waypoint=self.drone.next_target()
         globalhistory=self.drone.waypoint_history
         localHistory = []
@@ -202,13 +199,14 @@ class AIRouting(BASE_routing):
         elif self.drone.next_target() in self.drone_path:
             self.counter+=1
             if self.drone_path.index(self.drone.next_target()) == 0 and self.drone.buffer_length() >= 3:
-                return -1'''
+                return -1
 
         #CASO COLLISIONE----------------------------------------------------------------------------
         return None # here you should return a drone object!
 
 
-
+    def get_max_time_to_depot(self, drone):
+        return (util.euclidean_distance(self.simulator.depot.coords, (0, 1500))) / drone.speed
 
     def time_to_depot_and_return(self, drone):
         return (util.euclidean_distance(self.simulator.depot.coords, drone.coords) / drone.speed) * 2
