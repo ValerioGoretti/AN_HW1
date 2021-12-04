@@ -36,7 +36,7 @@ class AIRouting(BASE_routing):
         self.gamma = 0.8
 
         # learning rate
-        self.alpha = 0.3
+        self.alpha = 0.6
 
         # list to maintain (state, action) that need an update yet
         self.state_action_list = []
@@ -53,6 +53,10 @@ class AIRouting(BASE_routing):
         # last choiche
         self.last_choice_index = None
 
+        # values to calculate the rewards avg
+        self.cumulative_reward = 0
+        self.reward_counter = 0
+
 
 
     def feedback(self, drone, id_event, delay, outcome):
@@ -62,50 +66,43 @@ class AIRouting(BASE_routing):
             print("Drone: ", self.drone.identifier, "---------- just received a feedback:",
                   "Drone:", drone, " - id-event:", id_event, " - delay:",  delay, " - outcome:", outcome)
 
-
-
-
         # if the last choice was made by AI and the buffer length is still larger than 0,
         # then update Q table for all past actions without reward
-        if drone.buffer_length() != 0 and self.last_choice_index == 1:
+        if drone.buffer_length() != 0 and self.last_choice_index == 1 and drone == self.drone:
 
             # cancel last choice made
             self.last_choice_index = None
             # set the state for final state
             future_state = None
             # packets delivered when the drone moved directly to the depot
-            delivered_packets = set([hash(x) for x in drone.all_packets()])
+            delivered_packets = set([x.event_ref.identifier for x in drone.all_packets()])
             # empty the buffer of packets
             drone.empty_buffer()
-            print("############################## CONSEGNA ###############################")
-            print("ID DRONE: ", drone.identifier)
-            print(delivered_packets)
+
             for state, action_index in reversed(self.state_action_list):
                 # packets that the drone had in this state
                 pk_state = set(self.state_action_packets[state])
-                # delivered packets among that the drone had
+                # number of packets that the drone had in this state
+                pk_state_num = len(pk_state)
+                # delivered packets among those the drone had
                 pk_state_delivered = pk_state.intersection(delivered_packets)
-
-
-                # get the number of packets delivered among those the drone had
-                state_action_delivered_packets_num = len( set(self.state_action_packets[state]) & delivered_packets )
-
+                # number of delivered packets among those the drone had
+                pk_state_delivered_num = len(pk_state_delivered)
                 # percentage of delivered packets
-                delivered_packets_percent = (state_action_delivered_packets_num * 100) / len(set(self.state_action_packets[state]))
-                #print(delivered_packets_percent)
-
+                delivered_packets_percent = (pk_state_delivered_num * 100) / pk_state_num
                 # get the max time the drone would take if it had at the farthest point from depot
                 max_time = self.get_max_time_to_depot_and_return(drone)
-
-                # reward
-                reward = delivered_packets_percent - self.alpha * (self.final_time_to_depot / max_time)
-
-                # Q update formula
+                # reward -> (percentege of delivered packets [0,1] -
+                #            (alpha * (final time to go and return from depot / max time to go and return from depot)))
+                reward = (delivered_packets_percent / 100) - self.alpha * (self.final_time_to_depot / max_time)
+                # Q table update formula
                 self.q_dict[state][action_index] = self.q_dict[state][action_index] + self.alpha * (reward + self.gamma * max(self.q_dict[future_state]) - self.q_dict[state][action_index])
                 # set the next future state
                 future_state = state
-
-
+                if self.drone == drone and self.drone.identifier == 1:
+                    self.cumulative_reward += reward
+                    self.reward_counter +=1
+                    print(reward," ", self.cumulative_reward / self.reward_counter)
 
             # set the final time to 0
             self.final_time_to_depot = 0
@@ -117,9 +114,8 @@ class AIRouting(BASE_routing):
             self.state_action_packets = {}
 
 
-
-        #if outcome == -1:
-        #    print("Packet Expired: ", id_event)
+        '''if outcome == -1 and drone == self.drone and self.drone.identifier == 0:
+            print("Packet Expired: ", id_event)'''
 
         if id_event in self.packet_set and drone == self.drone:
             self.packet_generation = [x for x in self.packet_generation if x[0].event_ref.identifier != id_event]
@@ -128,7 +124,6 @@ class AIRouting(BASE_routing):
         if id_event in self.taken_actions:
             if outcome == 0:
                 self.packet_dictio[id_event]=True
-
 
 
     def relay_selection(self, opt_neighbors, pkd):
@@ -143,8 +138,10 @@ class AIRouting(BASE_routing):
             self.packet_generation.append((pkd,pkd.time_step_creation))
             self.packet_generation=sorted(self.packet_generation, key=lambda x: x[1])
 
+        if self.is_time_to_goback():
+            return -1
 
-        if self.is_packet_expiring(self.packet_generation[0][0]) and self.last_choice_index != 1 and self.drone.identifier == 0:
+        if self.is_packet_expiring(self.packet_generation[0][0]) and self.last_choice_index != 1:
 
             # check if the drone has already taken an action in this (state, action) sequence for the current state (cell)
             if cell_index not in [x[0] for x in self.state_action_list]:
@@ -153,10 +150,9 @@ class AIRouting(BASE_routing):
                     action_index = random.choice([0, 1])
                     # initialize the dict with the new state
                     self.q_dict[cell_index] = [0, 0]
-
                 # if the state already exists choice the best action in q_dict
                 else:
-                    is_random_choice = random.choices([True, False], weights=(50, 50), k=1)[0]
+                    is_random_choice = random.choices([True, False], weights=(10, 90), k=1)[0]
                     if is_random_choice or self.q_dict[cell_index][0] == self.q_dict[cell_index][1]:
                         action_index = random.choice([0, 1])
                     else:
@@ -166,9 +162,7 @@ class AIRouting(BASE_routing):
                 self.state_action_list.append((cell_index, action_index))
 
                 # store the packets in the buffer when i take an action
-                self.state_action_packets[cell_index] = [hash(x) for x in self.drone.all_packets()]
-
-                print("CELLA :", cell_index, " --> ", self.state_action_packets[cell_index])
+                self.state_action_packets[cell_index] = [x.event_ref.identifier for x in self.drone.all_packets()]
 
                 if action_index == 1:
                     # store the time needed to go and return to depot from this point
@@ -179,10 +173,7 @@ class AIRouting(BASE_routing):
                     self.last_choice_index = 0
                     return None
 
-        if self.is_time_to_goback():
-            return -1
-
-        '''if self.first_waypoint==None:
+        if self.first_waypoint==None:
             self.first_waypoint=self.drone.next_target()
         globalhistory=self.drone.waypoint_history
         localHistory = []
@@ -202,7 +193,7 @@ class AIRouting(BASE_routing):
         elif self.drone.next_target() in self.drone_path:
             self.counter+=1
             if self.drone_path.index(self.drone.next_target()) == 0 and self.drone.buffer_length() >= 3:
-                return -1'''
+                return -1
 
         #CASO COLLISIONE----------------------------------------------------------------------------
         return None # here you should return a drone object!
