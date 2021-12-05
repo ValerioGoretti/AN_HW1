@@ -28,7 +28,6 @@ class AIRouting(BASE_routing):
         self.actions_timestamp={}
         self.old_choices={}
 
-
         # q dictionary
         self.q_dict = {None : [0, 0]}
 
@@ -44,7 +43,7 @@ class AIRouting(BASE_routing):
         # dict to maintain the packets that i have when i make a decision
         self.state_action_packets = {}
 
-        # dict to maintain the time that the drone would take to go and return from the depot if he came back at that time
+        # dict to maintain the time that the drone taken to go and return from depot
         self.final_time_to_depot = 0
 
         # pck buffer
@@ -53,11 +52,8 @@ class AIRouting(BASE_routing):
         # last choiche
         self.last_choice_index = None
 
-        # values to calculate the rewards avg
-        self.cumulative_reward = 0
-        self.reward_counter = 0
-
-
+        # dictionary to store evaluation info {timestep : reward}
+        self.evaluation_dict = {}
 
     def feedback(self, drone, id_event, delay, outcome):
         """ return a possible feedback, if the destination drone has received the packet """
@@ -65,6 +61,7 @@ class AIRouting(BASE_routing):
             print("Drone: ", self.drone.identifier, "---------- has delivered: ", self.taken_actions)
             print("Drone: ", self.drone.identifier, "---------- just received a feedback:",
                   "Drone:", drone, " - id-event:", id_event, " - delay:",  delay, " - outcome:", outcome)
+
 
         # if the last choice was made by AI and the buffer length is still larger than 0,
         # then update Q table for all past actions without reward
@@ -79,7 +76,7 @@ class AIRouting(BASE_routing):
             # empty the buffer of packets
             drone.empty_buffer()
 
-            for state, action_index in reversed(self.state_action_list):
+            for state, action_index, step in reversed(self.state_action_list):
                 # packets that the drone had in this state
                 pk_state = set(self.state_action_packets[state])
                 # number of packets that the drone had in this state
@@ -97,12 +94,10 @@ class AIRouting(BASE_routing):
                 reward = (delivered_packets_percent / 100) - self.alpha * (self.final_time_to_depot / max_time)
                 # Q table update formula
                 self.q_dict[state][action_index] = self.q_dict[state][action_index] + self.alpha * (reward + self.gamma * max(self.q_dict[future_state]) - self.q_dict[state][action_index])
+                # updating of the evaluation dict, assign the reward to the correspending timestep
+                self.evaluation_dict[step] = reward
                 # set the next future state
                 future_state = state
-                if self.drone == drone and self.drone.identifier == 1:
-                    self.cumulative_reward += reward
-                    self.reward_counter +=1
-                    print(reward," ", self.cumulative_reward / self.reward_counter)
 
             # set the final time to 0
             self.final_time_to_depot = 0
@@ -112,10 +107,6 @@ class AIRouting(BASE_routing):
 
             # empty state action packets dict
             self.state_action_packets = {}
-
-
-        '''if outcome == -1 and drone == self.drone and self.drone.identifier == 0:
-            print("Packet Expired: ", id_event)'''
 
         if id_event in self.packet_set and drone == self.drone:
             self.packet_generation = [x for x in self.packet_generation if x[0].event_ref.identifier != id_event]
@@ -133,16 +124,18 @@ class AIRouting(BASE_routing):
                                                         x_pos=self.drone.coords[0],  # e.g. 1500
                                                         y_pos=self.drone.coords[1])[0]  # e.g. 500
 
+
         if pkd.event_ref.identifier not in self.packet_set:
             self.packet_set.add(pkd.event_ref.identifier)
             self.packet_generation.append((pkd,pkd.time_step_creation))
             self.packet_generation=sorted(self.packet_generation, key=lambda x: x[1])
 
+        # if the simulation is going to finish the drone takes its packets to the depot
         if self.is_time_to_goback():
             return -1
 
-        if self.is_packet_expiring(self.packet_generation[0][0]) and self.last_choice_index != 1:
-
+        # if a packet is expiring apply the reinforcement learning
+        if self.packet_generation != [] and self.is_packet_expiring(self.packet_generation[0][0]) and self.last_choice_index != 1:
             # check if the drone has already taken an action in this (state, action) sequence for the current state (cell)
             if cell_index not in [x[0] for x in self.state_action_list]:
                 if cell_index not in self.q_dict.keys():
@@ -159,7 +152,7 @@ class AIRouting(BASE_routing):
                         action_index = self.q_dict[cell_index].index(max(self.q_dict[cell_index]))
 
                 # add new (state, action) to be updated
-                self.state_action_list.append((cell_index, action_index))
+                self.state_action_list.append((cell_index, action_index, self.simulator.cur_step))
 
                 # store the packets in the buffer when i take an action
                 self.state_action_packets[cell_index] = [x.event_ref.identifier for x in self.drone.all_packets()]
@@ -173,6 +166,7 @@ class AIRouting(BASE_routing):
                     self.last_choice_index = 0
                     return None
 
+        # return to depot at the end of the lap
         if self.first_waypoint==None:
             self.first_waypoint=self.drone.next_target()
         globalhistory=self.drone.waypoint_history
@@ -195,8 +189,17 @@ class AIRouting(BASE_routing):
             if self.drone_path.index(self.drone.next_target()) == 0 and self.drone.buffer_length() >= 3:
                 return -1
 
-        #CASO COLLISIONE----------------------------------------------------------------------------
-        return None # here you should return a drone object!
+        # give the packet to the fastest drone
+        if len(opt_neighbors) != 0:
+            speed_drone_list = [(x[0].speed, x[0].src_drone) for x in opt_neighbors]
+            max_speed_drone = max(speed_drone_list, key = lambda x:x[0])
+            if max_speed_drone[0] <= self.drone.speed:
+                return None
+            else:
+                return max_speed_drone[1]
+
+        return None
+
 
 
     def get_max_time_to_depot_and_return(self, drone):
